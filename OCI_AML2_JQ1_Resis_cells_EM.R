@@ -1,0 +1,121 @@
+## top of script   --------------------------------------------------------------------------------------
+
+
+
+## PURPOSE: Use dummy dose-response data to fit probit and compute AUC and then connect to GitHub remote repo
+
+
+
+# script start date: 12/11/18
+
+
+
+
+# Working directory -------------------------------------------------------
+
+
+
+
+# Load packages -----------------------------------------------------------
+
+library(tidyverse)
+
+
+
+
+# Dose-response data ------------------------------------------------------
+
+# Raw MTS absorbance values from OCI-AML2 cell line made resistant to JQ1 and plated with JQ1
+
+Raw_response_vec <- c(0.168,0.183,0.188,0.230,0.313,0.344,0.295)
+
+Concentration_uM_vec <- c(10,10/3,10/(3^2),10/(3^3),10/(3^4),10/(3^5),10/(3^6))
+
+
+# quick check
+(Raw_response_vec - ave_FSV) / (PAC - ave_FSV)
+
+
+# ** CREATE scalars  ****
+
+PAC <- 0.3250217
+
+ave_FSV <- 0.153
+
+
+# ** CREATE df  ****
+DR_df <- tibble(Raw_viab = Raw_response_vec,
+                Norm_viab = (Raw_viab - ave_FSV) / (PAC - ave_FSV),
+                Norm_trunc_viab = case_when(Norm_viab < 0 ~ 0,
+                                            Norm_viab > 1 ~ 1,
+                                            Norm_viab >= 0 & Norm_viab <= 1 ~ Norm_viab),
+                conc = Concentration_uM_vec,
+                log10_conc = log10(conc))
+
+
+# check
+dim(DR_df)  # 7 by 5
+
+
+## Fit Probit reg   ---------------------------------------------------------------------------------------------
+
+
+JQ1_Probit_betas <- suppressWarnings(glm(Norm_trunc_viab ~ log10_conc, family=binomial(link="probit"), 
+                                     data=DR_df))$coefficients
+
+# check
+length(JQ1_Probit_betas)  # 2
+
+
+
+## Compute IC50   -----------------------------------------------------------------
+
+
+inc <- 0.00001  
+
+# Max dose
+max_log_dose <- log10(10)
+
+# Min dose
+min_log_dose <- log10(10/(3^6))
+
+IC50_log10 <- max_log_dose
+
+
+log_dose_range <- seq(from=min_log_dose, to=max_log_dose, by=inc)
+
+
+for (i in log_dose_range) {
+  curve_height <- pnorm(q=(JQ1_Probit_betas[1] + i*JQ1_Probit_betas[2]), lower.tail=TRUE) * 100 
+  
+  if (curve_height <= 50 & i < IC50_log10) {
+    IC50_log10 <- i
+  }
+}
+
+
+# IC50 should be 0.445
+(IC50_uM <- 10^IC50_log10)
+
+
+
+
+## Compute AUC -------------------------------------------------------------
+
+
+curve_height_100 <- pnorm(q=(JQ1_Probit_betas[1] + log_dose_range*JQ1_Probit_betas[2]),lower.tail=TRUE)*100
+
+
+# 'x' = abscissa values, 'fx' = corresponding values of f(x)
+
+# AUC should be 150
+(AUC <- sfsmisc::integrate.xy(x=log_dose_range, fx=curve_height_100))
+
+# 150.21 
+
+
+
+
+
+
+

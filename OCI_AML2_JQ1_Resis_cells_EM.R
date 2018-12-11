@@ -25,7 +25,10 @@ library(tidyverse)
 
 # Dose-response data ------------------------------------------------------
 
-# Raw MTS absorbance values from OCI-AML2 cell line made resistant to JQ1 and plated with JQ1
+# Raw MTS absorbance values from OCI-AML2 cell line 
+
+
+#** JQ1   ------------------------------------------------------------------
 
 Raw_response_vec <- c(0.168,0.183,0.188,0.230,0.313,0.344,0.295)
 
@@ -57,8 +60,16 @@ DR_df <- tibble(Raw_viab = Raw_response_vec,
 dim(DR_df)  # 7 by 5
 
 
+#** CPI-0610   ----------------------------------------------------------------------------------
+
+CPI_response_vec <- c(0.189,0.196,0.260,0.260,0.285,0.294,0.289)
+
+
+
 ## Fit Probit reg   ---------------------------------------------------------------------------------------------
 
+
+#** JQ1 probit   -------------------------------------------------------------------------------------------
 
 JQ1_Probit_betas <- suppressWarnings(glm(Norm_trunc_viab ~ log10_conc, family=binomial(link="probit"), 
                                      data=DR_df))$coefficients

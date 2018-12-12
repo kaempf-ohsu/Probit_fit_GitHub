@@ -179,10 +179,19 @@ identical(length(log_dose_range),length(JQ1_cubic_y_vals)) # TRUE
                                    fx=JQ1_cubic_y_vals))
 # 148.45 
 
+# probit AUC was 150.21
+
 
 ## (3) Linear interpolation   ---------------------------------------------------------------------------------------
 
+# li = (fine) linear interpolation
 
-(JQ1_li_AUC <- kulife::auc(x=DR_df$log10_conc,y=DR_df$Norm_trunc_viab)
+# kulife::auc() --> Compute the AUC using linear interpolation for two vectors where one corresponds
+#                   to the x values and the other corresponds to the y values.
 
+(JQ1_li_AUC <- kulife::auc(x=DR_df$log10_conc,y=(DR_df$Norm_trunc_viab)*100))
 
+# AUC = 153.25
+
+# cubic AUC = 148.45
+# probit AUC = 150.21

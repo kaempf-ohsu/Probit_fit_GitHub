@@ -23,9 +23,16 @@ library(tidyverse)
 
 
 
-# Dose-response data ------------------------------------------------------
+# Global vars -------------------------------------------------------------
 
-# Raw MTS absorbance values from OCI-AML2 cell line 
+inc <- 0.00001  
+
+
+
+
+## Dose-response data ------------------------------------------------------
+
+# Raw MTS absorbance values from OCI-AML2 cell line on Marctest v13 plate (from Kyle Romine) 
 
 
 #** JQ1   ------------------------------------------------------------------
@@ -66,7 +73,7 @@ CPI_response_vec <- c(0.189,0.196,0.260,0.260,0.285,0.294,0.289)
 
 
 
-## Fit Probit reg   ---------------------------------------------------------------------------------------------
+## (1) Probit reg   ---------------------------------------------------------------------------------------------
 
 
 #** JQ1 probit   -------------------------------------------------------------------------------------------
@@ -79,15 +86,13 @@ length(JQ1_Probit_betas)  # 2
 
 
 
-## Compute IC50   -----------------------------------------------------------------
+#** JQ1 IC50   -----------------------------------------------------------------
 
 
-inc <- 0.00001  
-
-# Max dose
+# Max dose for JQ1
 max_log_dose <- log10(10)
 
-# Min dose
+# Min dose for JQ1
 min_log_dose <- log10(10/(3^6))
 
 IC50_log10 <- max_log_dose
@@ -111,7 +116,7 @@ for (i in log_dose_range) {
 
 
 
-## Compute AUC -------------------------------------------------------------
+#** JQ1 AUC -------------------------------------------------------------
 
 
 curve_height_100 <- pnorm(q=(JQ1_Probit_betas[1] + log_dose_range*JQ1_Probit_betas[2]),lower.tail=TRUE)*100
@@ -125,7 +130,54 @@ curve_height_100 <- pnorm(q=(JQ1_Probit_betas[1] + log_dose_range*JQ1_Probit_bet
 # 150.21 
 
 
+## (2) Cubic reg   -----------------------------------------------------------------------------
 
+
+# checks
+DR_df
+
+
+#** JQ1 cubic   -------------------------------------------------------------------------------------------
+
+
+# (1) y = proportion (Viability)
+JQ1_Cubic_prop_betas <- lm(formula = Norm_trunc_viab ~ poly(log10_conc, 3), data=DR_df)$coefficients
+
+
+
+# (2) y = percentage (Viability)
+JQ1_Cubic_pct_betas <- lm(formula = (Norm_trunc_viab*100) ~ poly(log10_conc, 3), data=DR_df)$coefficients
+
+
+# checks
+JQ1_Cubic_pct_betas
+length(JQ1_Cubic_pct_betas)  # 4
+
+
+
+#** JQ1 AUC   --------------------------------------------------------------------------------------
+ 
+# Max dose for JQ1
+max_log_dose <- log10(10)
+
+# Min dose for JQ1
+min_log_dose <- log10(10/(3^6))
+
+
+log_dose_range <- seq(from=min_log_dose, to=max_log_dose, by=inc)
+
+
+JQ1_cubic_y_vals <- JQ1_Cubic_pct_betas[1] + (JQ1_Cubic_pct_betas[2] * log_dose_range) + 
+                      (JQ1_Cubic_pct_betas[3] * (log_dose_range^2)) + (JQ1_Cubic_pct_betas[4] * (log_dose_range^3))
+
+# check
+identical(length(log_dose_range),length(JQ1_cubic_y_vals)) # TRUE
+
+
+# compute AUC
+(cubic_AUC <- sfsmisc::integrate.xy(x=log_dose_range, 
+                                   fx=JQ1_cubic_y_vals))
+# 148.45 
 
 
 

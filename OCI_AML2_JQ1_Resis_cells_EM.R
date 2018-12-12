@@ -180,9 +180,5 @@ identical(length(log_dose_range),length(JQ1_cubic_y_vals)) # TRUE
 # 148.45 
 
 
-## (3) Linear interpolation   ---------------------------------------------------------------------------------------
-
-
-(JQ1_li_AUC <- kulife::auc(x=DR_df$log10_conc,y=DR_df$Norm_trunc_viab)
 
 
